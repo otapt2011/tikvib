@@ -1,0 +1,11 @@
+{
+  "name": "tikvib-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TikVib – TikTok profile viewer & database",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "dependencies": {},
+  "license": "MIT"
+}
