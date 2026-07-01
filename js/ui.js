@@ -1,5 +1,41 @@
 // UI rendering helpers
+// Show a small auto‑disappearing toast at the bottom centre
+function showToast(message, duration = 4000) {
+  // Remove any existing toast
+  const old = document.querySelector('.toast');
+  if (old) old.remove();
 
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  `;
+  document.body.appendChild(toast);
+
+  // Fade in
+  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+
+  // Fade out and remove
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
 // Format an ISO date string into a compact readable form
 function formatAbsoluteDate(isoString) {
   if (!isoString) return '';
