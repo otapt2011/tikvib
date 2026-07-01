@@ -239,6 +239,19 @@ async function saveToTurso(username, profile, videos) {
 
   const fullSql = statements.join(';\n');
   await execSql(fullSql);
+  
+
+// Toast with unsaved blob counts (non‑critical – errors are silent)
+try {
+  if (typeof countUnsavedBlobs === 'function') {
+    const [remainingAvatars, remainingThumbnails] = await Promise.all([
+      countUnsavedBlobs('avatar').catch(() => '?'),
+      countUnsavedBlobs('thumbnail').catch(() => '?')
+    ]);
+    const msg = `📸 Unsaved avatars: ${remainingAvatars} | Unsaved thumbnails: ${remainingThumbnails}`;
+    showToast(msg);
+  }
+} catch (_) { /* ignore – toast is optional */ }
 }
 
 // Event listeners
