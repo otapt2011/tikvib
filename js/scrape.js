@@ -242,16 +242,6 @@ async function saveToTurso(username, profile, videos) {
   
 
 // Toast with unsaved blob counts (non‑critical – errors are silent)
-try {
-  if (typeof countUnsavedBlobs === 'function') {
-    const [remainingAvatars, remainingThumbnails] = await Promise.all([
-      countUnsavedBlobs('avatar').catch(() => '?'),
-      countUnsavedBlobs('thumbnail').catch(() => '?')
-    ]);
-    const msg = `📸 Unsaved avatars: ${remainingAvatars} | Unsaved thumbnails: ${remainingThumbnails}`;
-    showToast(msg);
-  }
-} catch (_) { /* ignore – toast is optional */ }
 }
 
 // Event listeners
@@ -272,9 +262,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       App.savingText.textContent = 'Saving to database...';
       await saveToTurso(App.lastUsername, App.lastProfile, App.lastVideos);
-      await updateUserCount();
-      await updateUsernameSelect();
-      await customAlert('Data saved successfully!');
+await updateUserCount();
+await updateUsernameSelect();
+
+// Build extended success message with blob counts (if available)
+let successMsg = 'Data saved successfully!';
+try {
+  if (typeof countUnsavedBlobs === 'function') {
+    const [avatarCount, thumbCount] = await Promise.all([
+      countUnsavedBlobs('avatar').catch(() => '?'),
+      countUnsavedBlobs('thumbnail').catch(() => '?')
+    ]);
+    successMsg += `\n📸 Unsaved avatars: ${avatarCount} · Unsaved thumbnails: ${thumbCount}`;
+  }
+} catch (_) { /* ignore – alert stays simple if function missing */ }
+
+await customAlert(successMsg);
     } catch (err) {
       if (err.message !== 'Password cancelled') {
         console.warn('Save failed:', err.message);
