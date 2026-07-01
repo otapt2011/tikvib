@@ -253,43 +253,110 @@ document.addEventListener('DOMContentLoaded', () => {
   App.loadMoreBtn.addEventListener('click', loadMoreVideos);
 
   App.saveBtn.addEventListener('click', async () => {
-    if (!App.lastUsername || !App.lastProfile) return;
-    disableSaveButton();
-    showSaving(true, 'Connecting to database...');
-    try {
-      if (!App.authToken || !(await verifyToken(App.authToken))) {
-        await authenticate();
-      }
-      App.savingText.textContent = 'Saving to database...';
-      await saveToTurso(App.lastUsername, App.lastProfile, App.lastVideos);
-await updateUserCount();
-await updateUsernameSelect();
+  if (!App.lastUsername || !App.lastProfile) return;
 
-// Build extended success message with blob counts (if available)
-let successMsg = 'Data saved successfully!';
-try {
-  if (typeof countUnsavedBlobs === 'function') {
-    const [avatarCount, thumbCount] = await Promise.all([
-      countUnsavedBlobs('avatar').catch(() => '?'),
-      countUnsavedBlobs('thumbnail').catch(() => '?')
-    ]);
-    successMsg += `\n📸 Unsaved avatars: ${avatarCount} · Unsaved thumbnails: ${thumbCount}`;
-  }
-} catch (_) { /* ignore – alert stays simple if function missing */ }
+  disableSaveButton();
+  showSaving(true, 'Connecting to database...');
 
-await customAlert(successMsg);
-    } catch (err) {
-      if (err.message !== 'Password cancelled') {
-        console.warn('Save failed:', err.message);
-        await customAlert(`Failed to save: ${err.message}`);
-        enableSaveButton();
-      } else {
-        enableSaveButton();
-      }
-    } finally {
-      showSaving(false);
+  try {
+    if (!App.authToken || !(await verifyToken(App.authToken))) {
+      await authenticate();
     }
-  });
+    App.savingText.textContent = 'Saving to database...';
+    await saveToTurso(App.lastUsername, App.lastProfile, App.lastVideos);
+    await updateUserCount();
+    await updateUsernameSelect();
+
+    // ----- Build the custom dialog with action buttons -----
+    let successMsg = 'Data saved successfully!';
+    let avatarCount = 0, thumbCount = 0;
+
+    if (typeof countUnsavedBlobs === 'function') {
+      const results = await Promise.all([
+        countUnsavedBlobs('avatar').catch(() => 0),
+        countUnsavedBlobs('thumbnail').catch(() => 0)
+      ]);
+      avatarCount = results[0];
+      thumbCount = results[1];
+      successMsg += `\n📸 Unsaved avatars: ${avatarCount} · Unsaved thumbnails: ${thumbCount}`;
+    }
+
+    // Create the dialog overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+
+    const buttonsHTML = [];
+    if (avatarCount > 0) {
+      buttonsHTML.push(`<button class="btn-primary" id="btnSaveAvatars" style="flex:1; max-width:160px;">Save Avatars (${avatarCount})</button>`);
+    }
+    if (thumbCount > 0) {
+      buttonsHTML.push(`<button class="btn-primary" id="btnSaveThumbnails" style="flex:1; max-width:160px;">Save Thumbnails (${thumbCount})</button>`);
+    }
+
+    overlay.innerHTML = `
+      <div class="dialog-box" style="max-width:400px;">
+        <h3 style="white-space:pre-line;">${successMsg}</h3>
+        ${buttonsHTML.length ? `<div class="dialog-buttons" style="justify-content:center;gap:0.5rem;flex-wrap:wrap;">${buttonsHTML.join('')}</div>` : ''}
+        <div class="dialog-buttons" style="justify-content:center;">
+          <button class="btn-cancel" id="dialogClose">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Close handler
+    const close = () => {
+      if (overlay) overlay.remove();
+    };
+
+    overlay.querySelector('#dialogClose').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    // Helper to run a blob save and update button text
+    async function runBlobSave(btnElement, type, count) {
+      const originalText = btnElement.textContent;
+      btnElement.textContent = 'Saving…';
+      btnElement.disabled = true;
+      try {
+        const result = await loadConvertSaveAll(type, type === 'avatar' ? 200 : 500, () => {});
+        btnElement.textContent = `✅ Saved ${result.saved}/${result.total}`;
+      } catch (err) {
+        btnElement.textContent = '❌ Failed';
+        console.error(err);
+      } finally {
+        btnElement.disabled = false;
+        setTimeout(() => {
+          if (btnElement.isConnected) btnElement.textContent = originalText;
+        }, 3000);
+      }
+    }
+
+    // Attach button actions (if buttons exist)
+    const btnAvatars = overlay.querySelector('#btnSaveAvatars');
+    const btnThumbnails = overlay.querySelector('#btnSaveThumbnails');
+
+    if (btnAvatars) {
+      btnAvatars.addEventListener('click', () => runBlobSave(btnAvatars, 'avatar', avatarCount));
+    }
+    if (btnThumbnails) {
+      btnThumbnails.addEventListener('click', () => runBlobSave(btnThumbnails, 'thumbnail', thumbCount));
+    }
+
+  } catch (err) {
+    if (err.message !== 'Password cancelled') {
+      console.warn('Save failed:', err.message);
+      await customAlert(`Failed to save: ${err.message}`);
+      enableSaveButton();
+    } else {
+      enableSaveButton();
+    }
+  } finally {
+    showSaving(false);
+  }
+});
 
   showSkeletons();
   disableSaveButton();
