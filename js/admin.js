@@ -168,6 +168,7 @@ document.getElementById('timelineLoadBtn').addEventListener('click', async () =>
 });
 
 // ---------- Video Spikes ----------
+// ---------- Video Spikes ----------
 async function loadVideoSpikes() {
   if (loadedTabs.videoSpikes) return;
   const tabId = 'videoSpikes';
@@ -187,21 +188,15 @@ async function loadVideoSpikes() {
       if (num >= 1_000) return (num / 1_000).toFixed(1) + 'k';
       return num.toLocaleString();
     };
-    const formatDate = (dateStr) => {
-      if (!dateStr) return '—';
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-        + ', ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    };
     rows.forEach(row => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${row.username}</td>
-        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${row.title || '?'}</td>
+        <td>${row.video_id}</td>
         <td class="metric">${formatNumber(row.views)}</td>
         <td class="metric">${formatNumber(row.comments)}</td>
         <td class="metric">${formatNumber(row.shares)}</td>
-        <td class="date">${formatDate(row.scrape_time)}</td>`;
+        <td>${row.posted || '—'}</td>`;
       tbody.appendChild(tr);
     });
     table.classList.remove('hidden');
