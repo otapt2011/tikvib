@@ -60,3 +60,15 @@ async function execSql(sql) {
   }
   return resp.json();
 }
+
+// Execute a read‑only SQL query and return the rows
+async function queryRows(sql) {
+  const resp = await fetch(`${App.TURSO_API_URL}/api/${App.TURSO_DB_NAME}/query?sql=${encodeURIComponent(sql)}`, {
+    headers: { 'x-api-key': App.authToken }
+  });
+  if (!resp.ok) {
+    const errData = await resp.json().catch(() => ({}));
+    throw new Error(errData.error || `Query failed (HTTP ${resp.status})`);
+  }
+  return await resp.json();
+}
